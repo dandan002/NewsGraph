@@ -1,12 +1,12 @@
 'use client'
 
 import { useActionState } from 'react'
-import { signIn } from '@/app/login/actions'
+import { signIn, type AuthState } from '@/app/login/actions'
 
-const initialState = { error: '' }
+const initialState: AuthState = { error: '' }
 
 export function LoginForm() {
-  const [state, formAction] = useActionState(signIn as any, initialState)
+  const [state, formAction] = useActionState(signIn, initialState)
 
   return (
     <form action={formAction} className="flex flex-col gap-4">

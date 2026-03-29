@@ -3,7 +3,14 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 
-export async function signIn(formData: FormData) {
+export interface AuthState {
+  error: string
+}
+
+export async function signIn(
+  _prevState: AuthState,
+  formData: FormData
+): Promise<AuthState> {
   const supabase = await createClient()
   const { error } = await supabase.auth.signInWithPassword({
     email: formData.get('email') as string,

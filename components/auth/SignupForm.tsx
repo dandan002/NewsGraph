@@ -2,11 +2,12 @@
 
 import { useActionState } from 'react'
 import { signUp } from '@/app/signup/actions'
+import type { AuthState } from '@/app/login/actions'
 
-const initialState = { error: '' }
+const initialState: AuthState = { error: '' }
 
 export function SignupForm() {
-  const [state, formAction] = useActionState(signUp as any, initialState)
+  const [state, formAction] = useActionState(signUp, initialState)
 
   return (
     <form action={formAction} className="flex flex-col gap-4">
