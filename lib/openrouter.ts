@@ -1,6 +1,14 @@
 const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/embeddings'
 
+interface OpenRouterEmbeddingResponse {
+  data: Array<{ embedding: number[] }>
+}
+
 export async function embed(text: string): Promise<number[]> {
+  if (!process.env.OPENROUTER_API_KEY) {
+    throw new Error('OPENROUTER_API_KEY is not configured')
+  }
+
   const res = await fetch(OPENROUTER_API_URL, {
     method: 'POST',
     headers: {
@@ -18,6 +26,10 @@ export async function embed(text: string): Promise<number[]> {
     throw new Error(`OpenRouter embeddings failed: ${err}`)
   }
 
-  const data = await res.json()
-  return data.data[0].embedding as number[]
+  const data = (await res.json()) as OpenRouterEmbeddingResponse
+  const embedding = data?.data?.[0]?.embedding
+  if (!embedding) {
+    throw new Error('Unexpected embedding response shape from OpenRouter')
+  }
+  return embedding
 }

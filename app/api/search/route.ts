@@ -5,7 +5,7 @@ import { NextResponse } from 'next/server'
 interface SearchRequest {
   query: string
   tier?: number | null
-  dateRange?: number // days
+  dateRange?: number
 }
 
 interface Article {
@@ -13,7 +13,7 @@ interface Article {
   url: string
   source_name: string
   credibility_tier: number
-  published_at: string
+  published_at: string | null
   summary_en: string
 }
 
@@ -22,24 +22,33 @@ export async function POST(request: Request) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const body: SearchRequest = await request.json()
-  const { query, tier, dateRange = 7 } = body
-
-  // Embed the query (or use recent articles if query is empty)
-  let embedding: number[] | null = null
-  if (query && query.trim()) {
-    embedding = await embed(query)
+  let body: SearchRequest
+  try {
+    body = await request.json()
+  } catch {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
   }
 
-  const since = new Date(Date.now() - dateRange * 24 * 3_600_000).toISOString()
+  const { query = '', dateRange = 7 } = body
+  // Validate tier: must be 1, 2, 3, null, or undefined
+  const tier = [1, 2, 3].includes(body.tier as number) ? (body.tier as number) : null
 
-  // If we have an embedding, use pgvector cosine similarity via RPC
-  if (embedding) {
+  const since = new Date(Date.now() - Math.max(1, dateRange) * 24 * 3_600_000).toISOString()
+
+  if (query.trim()) {
+    let embedding: number[]
+    try {
+      embedding = await embed(query)
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Embedding failed'
+      return NextResponse.json({ error: message }, { status: 502 })
+    }
+
     const { data, error } = await supabase.rpc('search_articles', {
       query_embedding: embedding,
       match_threshold: 0.3,
       match_count: 10,
-      filter_tier: tier ?? null,
+      filter_tier: tier,
       filter_since: since,
     })
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
@@ -54,7 +63,7 @@ export async function POST(request: Request) {
     .order('published_at', { ascending: false })
     .limit(10)
 
-  if (tier !== null && tier !== undefined) {
+  if (tier !== null) {
     dbQuery = dbQuery.eq('credibility_tier', tier)
   }
 
