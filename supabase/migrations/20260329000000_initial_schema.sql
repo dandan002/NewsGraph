@@ -25,8 +25,15 @@ CREATE TABLE market_snapshots (
   snapshot_at   timestamptz DEFAULT now()
 );
 
+ALTER TABLE market_snapshots
+  ADD CONSTRAINT market_snapshots_asset_snapshot_key UNIQUE (asset, snapshot_at);
+
 -- Indexes
-CREATE INDEX ON articles USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100);
+-- NOTE: This index is built on an empty table. After the first bulk ingest,
+-- run: REINDEX INDEX CONCURRENTLY articles_embedding_idx;
+-- to rebuild cluster centroids for accurate approximate nearest-neighbor search.
+CREATE INDEX articles_embedding_idx ON articles
+  USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100);
 CREATE INDEX ON articles (published_at DESC);
 CREATE INDEX ON market_snapshots (snapshot_at DESC);
 
@@ -38,3 +45,7 @@ CREATE POLICY "authenticated read" ON articles
 ALTER TABLE market_snapshots ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "authenticated read" ON market_snapshots
   FOR SELECT USING (auth.role() = 'authenticated');
+
+-- NOTE: INSERT/UPDATE operations on both tables are performed by the Python ingest
+-- worker using the Supabase service role key, which bypasses RLS by design.
+-- Do NOT use the anon key for writes in the worker.
