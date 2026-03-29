@@ -27,7 +27,7 @@ from sources.edinet import EDINET_FORM_CODES, _extract_text_from_zip, _fetch_doc
 from sources.gdelt import _parse_gkg_csv, parse_gkg_articles, _has_japan_location
 
 # --- Config ---
-DAYS = 90                # How many days back to fetch
+DAYS = 30                # How many days back to fetch
 GDELT_FILES_PER_DAY = 2  # GDELT GKG files to sample per day (96 files/day total)
 EDINET_CAP_PER_DAY = 15  # Max EDINET timely disclosures per day
 
@@ -80,7 +80,7 @@ async def backfill_edinet(days: int) -> None:
                 )
                 article = {
                     "url": (
-                        f"https://disclosure2.edinet-fsa.go.jp/PLD_0001.aspx?DocumentID={doc.doc_id}"
+                        f"https://disclosure2dl.edinet-fsa.go.jp/searchdocument/pdf/{doc.doc_id}.pdf"
                     ),
                     "source_name": "EDINET",
                     "credibility_tier": 1,
@@ -176,8 +176,8 @@ async def main() -> None:
     print(f"Starting backfill: {DAYS} days, EDINET cap {EDINET_CAP_PER_DAY}/day, "
           f"GDELT {GDELT_FILES_PER_DAY} files/day\n")
 
-    await backfill_edinet(DAYS)
-    print()
+    #await backfill_edinet(DAYS)
+    #print()
     await backfill_gdelt(DAYS, GDELT_FILES_PER_DAY)
 
     print("\nDone. Run this in Supabase SQL Editor to rebuild the vector index:")

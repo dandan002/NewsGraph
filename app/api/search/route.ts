@@ -6,6 +6,7 @@ interface SearchRequest {
   query: string
   tier?: number | null
   dateRange?: number
+  offset?: number
 }
 
 interface Article {
@@ -29,7 +30,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
   }
 
-  const { query = '', dateRange = 7 } = body
+  const { query = '', dateRange = 7, offset = 0 } = body
   // Validate tier: must be 1, 2, 3, null, or undefined
   const tier = [1, 2, 3].includes(body.tier as number) ? (body.tier as number) : null
 
@@ -47,7 +48,7 @@ export async function POST(request: Request) {
     const { data, error } = await supabase.rpc('search_articles', {
       query_embedding: embedding,
       match_threshold: 0.3,
-      match_count: 10,
+      match_count: 40,
       filter_tier: tier,
       filter_since: since,
     })
@@ -56,12 +57,13 @@ export async function POST(request: Request) {
   }
 
   // Fallback: recent articles sorted by date
+  const PAGE_SIZE = 40
   let dbQuery = supabase
     .from('articles')
     .select('id, url, source_name, credibility_tier, published_at, summary_en')
     .gte('published_at', since)
     .order('published_at', { ascending: false })
-    .limit(10)
+    .range(offset, offset + PAGE_SIZE - 1)
 
   if (tier !== null) {
     dbQuery = dbQuery.eq('credibility_tier', tier)
@@ -69,5 +71,5 @@ export async function POST(request: Request) {
 
   const { data, error } = await dbQuery
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  return NextResponse.json({ articles: data })
+  return NextResponse.json({ articles: data, hasMore: data.length === PAGE_SIZE })
 }

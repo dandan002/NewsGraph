@@ -1,43 +1,63 @@
-import json
 import os
 import anthropic
 
 _client = anthropic.AsyncAnthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
 
 SYSTEM_PROMPT = (
-    "Your job is to read raw source material — filings, wire copy, translated articles — and "
-    "write a natural, detailed 3-4 sentence English summary for a US investor audience. "
-    "Lead with the most market-relevant fact."
-    "Include key figures (revenue, profit, guidance, rates, dates)."
-    "using approximate current exchange rates, and state what form it is (not just the form number). "
-    "Use active voice and past tense for completed actions."
-    "If the source is in Japanese, translate accurately."
-    'Respond with a JSON object only, no other text. Format: {"headline": "...", "summary": "..."}'
+    "You read raw source material — filings, wire copy, translated articles — and write "
+    "natural, 300 character summaries for a US investor audience. "
+    "Lead with the most market-relevant fact. Name the company and what it does. "
+    "Include key figures (revenue, profit, guidance, rates, dates); convert yen to USD at approximate current rates. "
+    "Omit regulatory form numbers and filing codes. "
+    "Use active voice and past tense for completed actions. "
+    "If the source is in Japanese, translate accurately and use the company's common English name where one exists. "
+    "Choose the category that best fits: "
+    "FILING for routine regulatory filings and disclosures; "
+    "EARNINGS for quarterly or annual financial results; "
+    "EVENT for corporate actions, shareholder meetings, or one-off announcements; "
+    "MACRO for economic data, central bank decisions, or government policy; "
+    "M&A for mergers, acquisitions, tender offers, or stake changes."
 )
+
+_TOOL = {
+    "name": "publish_summary",
+    "description": "Publish a structured summary for the news feed.",
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "category": {
+                "type": "string",
+                "enum": ["FILING", "EARNINGS", "EVENT", "MACRO", "M&A"],
+                "description": "Content category label shown on the card.",
+            },
+            "headline": {
+                "type": "string",
+                "description": "One punchy sentence, max 160 characters.",
+            },
+            "summary": {
+                "type": "string",
+                "description": "3-5 additional sentences of context and figures.",
+            },
+        },
+        "required": ["category", "headline", "summary"],
+    },
+}
 
 
 async def summarize_article(raw_text: str) -> str:
-    """Translate and summarize a foreign-language article in one Claude call.
-    Returns a plain English summary string (headline + summary combined)."""
-    text = raw_text[:8000]
+    """Summarize source material and return a formatted string: 'CATEGORY: headline summary'."""
     message = await _client.messages.create(
         model="claude-sonnet-4-6",
-        max_tokens=400,
+        max_tokens=1024,
         system=SYSTEM_PROMPT,
-        messages=[{"role": "user", "content": text}],
+        tools=[_TOOL],
+        tool_choice={"type": "tool", "name": "publish_summary"},
+        messages=[{"role": "user", "content": raw_text[:8000]}],
     )
-    raw = message.content[0].text.strip()
 
-    # Extract JSON — find first { ... } block
-    start = raw.find("{")
-    end = raw.rfind("}") + 1
-    if start == -1 or end == 0:
-        return raw  # fallback: return as-is if no JSON found
-
-    try:
-        data = json.loads(raw[start:end])
-        headline = data.get("headline", "").strip()
-        summary = data.get("summary", "").strip()
-        return f"{headline} {summary}".strip() if headline else summary
-    except json.JSONDecodeError:
-        return raw
+    tool_use = next(b for b in message.content if b.type == "tool_use")
+    data = tool_use.input
+    category = data["category"]
+    headline = data["headline"].strip()
+    summary = data["summary"].strip()
+    return f"{category}: {headline} {summary}".strip()

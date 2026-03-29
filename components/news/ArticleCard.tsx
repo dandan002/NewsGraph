@@ -41,7 +41,7 @@ function timeAgo(dateStr: string | null): string {
 export function ArticleCard({ article }: { article: Article }) {
   const tier = TIER_CONFIG[article.credibility_tier]
   const headline = extractHeadline(article.summary_en)
-  const snippet = article.summary_en.slice(headline.length).trim().split('.')[0]
+  const snippet = article.summary_en.slice(headline.length).trim()
 
   return (
     <a
@@ -66,8 +66,8 @@ export function ArticleCard({ article }: { article: Article }) {
 
         {/* Snippet */}
         {snippet && (
-          <p className="text-slate-500 text-[10.5px] leading-relaxed mb-2 line-clamp-2">
-            {snippet}.
+          <p className="text-slate-500 text-[10.5px] leading-relaxed mb-2 line-clamp-6">
+            {snippet}
           </p>
         )}
 

@@ -69,7 +69,7 @@ async def fetch_edinet() -> list[dict]:
             )
             articles.append({
                 "url": (
-                    f"https://disclosure2.edinet-fsa.go.jp/PLD_0001.aspx?DocumentID={doc.doc_id}"
+                    f"https://disclosure2dl.edinet-fsa.go.jp/searchdocument/pdf/{doc.doc_id}.pdf"
                 ),
                 "source_name": "EDINET",
                 "credibility_tier": 1,
