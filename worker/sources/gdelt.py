@@ -45,7 +45,7 @@ async def fetch_gdelt() -> list[dict]:
         res.raise_for_status()
 
         articles = []
-        reader = csv.reader(io.StringIO(res.text), delimiter="\t")
+        reader = csv.reader(io.StringIO(res.text, newline=''), delimiter="\t")
 
         for row in reader:
             if len(row) < 5:
