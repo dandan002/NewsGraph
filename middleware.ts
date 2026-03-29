@@ -35,8 +35,8 @@ export async function middleware(request: NextRequest) {
     url.pathname = '/login'
     const redirectResponse = NextResponse.redirect(url)
     // Copy Supabase session cookies onto the redirect so they survive
-    supabaseResponse.cookies.getAll().forEach(({ name, value, ...options }) => {
-      redirectResponse.cookies.set(name, value, options as any)
+    supabaseResponse.cookies.getAll().forEach((cookie) => {
+      redirectResponse.cookies.set(cookie.name, cookie.value)
     })
     return redirectResponse
   }
