@@ -12,17 +12,30 @@ csv.field_size_limit(min(sys.maxsize, 10_000_000))
 GDELT_MASTER_URL = "http://data.gdeltproject.org/gdeltv2/lastupdate.txt"
 
 
-def _has_japan_location(locations_str: str) -> bool:
-    """Check if any location block in the GKG locations field is Japan."""
+def _has_japan_location(locations_str: str, source_url: str = "") -> bool:
+    """Return True if Japan dominates the GKG locations field or the source is a .jp domain."""
+    # Japanese-domain sources are always relevant
+    if source_url and ".jp/" in source_url:
+        return True
+
     if not locations_str:
         return False
-    if "Japan" in locations_str:
-        return True
-    for block in locations_str.split(";"):
+
+    # GDELT uses "JA" (not "JP") as Japan's country code
+    blocks = [b for b in locations_str.split(";") if b.strip()]
+    total = 0
+    japan = 0
+    for block in blocks:
         parts = block.split("#")
-        if len(parts) >= 3 and parts[2] == "JP":
-            return True
-    return False
+        if len(parts) < 3:
+            continue
+        total += 1
+        if parts[2] == "JA":
+            japan += 1
+
+    # Japan must make up the majority of locations to avoid false positives
+    # from articles that merely mention Japan in passing (e.g. Japanese athletes)
+    return total > 0 and japan / total >= 0.6
 
 
 def _parse_gkg_csv(content: bytes) -> str:
@@ -46,10 +59,9 @@ async def parse_gkg_articles(csv_text: str, client: httpx.AsyncClient, cap: int 
         if len(row) < 10:
             continue
         try:
-            if not _has_japan_location(row[9]):
-                continue
-
             url = row[4].strip()
+            if not _has_japan_location(row[9], source_url=url):
+                continue
             if not url.startswith("http"):
                 continue
 
