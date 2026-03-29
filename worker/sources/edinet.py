@@ -19,18 +19,18 @@ async def fetch_edinet() -> list[dict]:
     results = data.get("results", [])
 
     articles = []
-    for doc in results[:30]:  # Cap at 30 per cycle
+
+    # Filter for timely disclosures first, then cap at 30
+    timely_docs = [
+        doc for doc in results
+        if doc.get("formCode", "").startswith("140") and doc.get("docID")
+    ]
+
+    for doc in timely_docs[:30]:
         doc_id = doc.get("docID")
         doc_type = doc.get("formCode", "")
         company = doc.get("filerName", "")
         submitted_at = doc.get("submitDateTime", "")
-
-        # Filter for timely disclosures (formCode starts with "140")
-        if not doc_type.startswith("140"):
-            continue
-
-        if not doc_id:
-            continue
 
         url = (
             f"https://disclosure.edinet-fsa.go.jp/E01EW/BLMainController.jsp"
