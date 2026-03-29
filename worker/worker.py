@@ -99,6 +99,8 @@ async def run_edinet_loop() -> None:
 async def main() -> None:
     from server import start_server
     await start_server()
+    # Run one immediate cycle on startup so the site has data right away
+    await run_once()
     await asyncio.gather(
         run_news_loop(),
         run_edinet_loop(),
