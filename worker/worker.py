@@ -12,11 +12,12 @@ async def run_once() -> None:
     from sources.gdelt import fetch_gdelt
     from sources.edinet import fetch_edinet
     from sources.newsapi import fetch_newsapi
+    from sources.asahi import fetch_asahi
     from pipeline.summarize import summarize_article
     from pipeline.embed import embed_text
     from pipeline.store import upsert_article
 
-    sources = [fetch_nhk, fetch_gdelt, fetch_newsapi, fetch_edinet]
+    sources = [fetch_nhk, fetch_gdelt, fetch_newsapi, fetch_asahi, fetch_edinet]
 
     for fetch_fn in sources:
         try:
@@ -53,11 +54,12 @@ async def run_news_loop() -> None:
     from sources.nhk import fetch_nhk
     from sources.gdelt import fetch_gdelt
     from sources.newsapi import fetch_newsapi
+    from sources.asahi import fetch_asahi
     from pipeline.summarize import summarize_article
     from pipeline.embed import embed_text
     from pipeline.store import upsert_article
 
-    news_sources = [fetch_nhk, fetch_gdelt, fetch_newsapi]
+    news_sources = [fetch_nhk, fetch_gdelt, fetch_newsapi, fetch_asahi]
     while True:
         for fetch_fn in news_sources:
             try:

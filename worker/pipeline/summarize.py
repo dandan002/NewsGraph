@@ -17,6 +17,7 @@ SYSTEM_PROMPT = (
     "EVENT for corporate actions, shareholder meetings, or one-off announcements; "
     "MACRO for economic data, central bank decisions, or government policy; "
     "M&A for mergers, acquisitions, tender offers, or stake changes."
+    "NEWS for news articles."
 )
 
 _TOOL = {

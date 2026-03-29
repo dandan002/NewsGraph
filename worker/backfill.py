@@ -170,6 +170,71 @@ async def backfill_gdelt(days: int, files_per_day: int) -> None:
     print(f"\nGDELT backfill complete: {total} articles stored")
 
 
+# ── NewsAPI ───────────────────────────────────────────────────────────────────
+
+async def backfill_newsapi(days: int) -> None:
+    """Backfill Japan headlines from NewsAPI /v2/everything (max 30 days on free plan)."""
+    api_key = os.environ.get("NEWSAPI_KEY")
+    if not api_key:
+        print("NewsAPI: NEWSAPI_KEY not set, skipping")
+        return
+
+    today = date.today()
+    total = 0
+    NEWSAPI_URL = "https://newsapi.org/v2/everything"
+
+    async with httpx.AsyncClient(timeout=15.0) as client:
+        for i in range(0, min(days, 30), 1):
+            target = today - timedelta(days=i)
+            date_str = target.strftime("%Y-%m-%d")
+            try:
+                res = await client.get(NEWSAPI_URL, params={
+                    "q": "Japan",
+                    "language": "jp",
+                    "from": date_str,
+                    "to": date_str,
+                    "pageSize": 20,
+                    "sortBy": "publishedAt",
+                    "apiKey": api_key,
+                })
+                res.raise_for_status()
+                items = res.json().get("articles", [])
+            except Exception as e:
+                print(f"NewsAPI {date_str}: fetch error — {e}")
+                continue
+
+            if not items:
+                print(f"NewsAPI {date_str}: 0 articles")
+                continue
+
+            print(f"NewsAPI {date_str}: {len(items)} articles")
+            for item in items:
+                url = item.get("url", "")
+                if not url:
+                    continue
+                raw_text = " ".join(filter(None, [
+                    item.get("title", ""),
+                    item.get("description", ""),
+                    item.get("content", ""),
+                ]))
+                article = {
+                    "url": url,
+                    "source_name": item.get("source", {}).get("name", "NewsAPI"),
+                    "credibility_tier": 2,
+                    "country": "JP",
+                    "published_at": item.get("publishedAt"),
+                    "raw_text": raw_text,
+                }
+                if await run_pipeline(article):
+                    total += 1
+                    print(f"  stored: {url[:60]}")
+
+            # NewsAPI free plan: 100 req/day — small delay to be safe
+            await asyncio.sleep(0.5)
+
+    print(f"\nNewsAPI backfill complete: {total} articles stored")
+
+
 # ── Main ─────────────────────────────────────────────────────────────────────
 
 async def main() -> None:
@@ -178,7 +243,9 @@ async def main() -> None:
 
     #await backfill_edinet(DAYS)
     #print()
-    await backfill_gdelt(DAYS, GDELT_FILES_PER_DAY)
+    #await backfill_gdelt(DAYS, GDELT_FILES_PER_DAY)
+    #print()
+    await backfill_newsapi(DAYS)
 
     print("\nDone. Run this in Supabase SQL Editor to rebuild the vector index:")
     print("  REINDEX INDEX articles_embedding_idx;")
