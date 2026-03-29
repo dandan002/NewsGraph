@@ -1,6 +1,7 @@
 import feedparser
 import httpx
 from datetime import datetime, timezone
+from sources.utils import extract_text
 
 NHK_RSS_URL = "https://www3.nhk.or.jp/rss/news/cat0.xml"
 
@@ -18,7 +19,7 @@ async def fetch_nhk() -> list[dict]:
             raw_text = entry.get("summary", "") or entry.get("title", "")
             try:
                 page = await client.get(entry.link, timeout=10.0)
-                raw_text = page.text[:6000]
+                raw_text = extract_text(page.text)
             except Exception:
                 pass  # Fall back to summary
 

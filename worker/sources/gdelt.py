@@ -2,6 +2,7 @@ import httpx
 import csv
 import io
 from datetime import datetime, timezone
+from sources.utils import extract_text
 
 # GDELT GKG v2 15-minute CSV master list
 GDELT_MASTER_URL = "http://data.gdeltproject.org/gdeltv2/lastupdate.txt"
@@ -68,7 +69,7 @@ async def fetch_gdelt() -> list[dict]:
                     raw_text = f"Source: {src.strip()}. Article URL: {url}."
                     try:
                         page = await client.get(url, timeout=8.0)
-                        raw_text = page.text[:5000]
+                        raw_text = extract_text(page.text, max_chars=5000)
                     except Exception:
                         pass
 
