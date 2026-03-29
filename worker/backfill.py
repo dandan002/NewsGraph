@@ -11,12 +11,11 @@ Set DAYS and GDELT_FILES_PER_DAY below to control volume.
 """
 
 import asyncio
-import io
 import os
-import zipfile
 from datetime import date, timedelta, datetime, timezone
 
 import httpx
+import edinet_tools
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -24,16 +23,15 @@ load_dotenv()
 from pipeline.summarize import summarize_article
 from pipeline.embed import embed_text
 from pipeline.store import upsert_article
+from sources.edinet import EDINET_FORM_CODES, _extract_text_from_zip
 from sources.gdelt import _parse_gkg_csv, parse_gkg_articles, _has_japan_location
-from sources.utils import extract_text
 
 # --- Config ---
-DAYS = 30                # How many days back to fetch
+DAYS = 90                # How many days back to fetch
 GDELT_FILES_PER_DAY = 2  # GDELT GKG files to sample per day (96 files/day total)
 EDINET_CAP_PER_DAY = 15  # Max EDINET timely disclosures per day
 
 GDELT_MASTER_URL = "http://data.gdeltproject.org/gdeltv2/masterfilelist.txt"
-EDINET_URL = "https://disclosure2.edinet-fsa.go.jp/api/v2/documents.json"
 
 
 async def run_pipeline(article: dict) -> bool:
@@ -54,52 +52,51 @@ async def backfill_edinet(days: int) -> None:
     today = date.today()
     total = 0
 
-    async with httpx.AsyncClient(timeout=20.0, follow_redirects=True) as client:
-        for i in range(days):
-            target = (today - timedelta(days=i)).strftime("%Y-%m-%d")
+    for i in range(days):
+        target = (today - timedelta(days=i)).strftime("%Y-%m-%d")
+        try:
+            docs = await asyncio.to_thread(edinet_tools.documents, target)
+        except Exception as e:
+            print(f"EDINET {target}: fetch error — {e}")
+            continue
+
+        docs = [d for d in docs if d.doc_type_code in EDINET_FORM_CODES][:EDINET_CAP_PER_DAY]
+
+        if not docs:
+            print(f"EDINET {target}: 0 matching docs")
+            continue
+
+        print(f"EDINET {target}: {len(docs)} docs")
+        for doc in docs:
             try:
-                api_key = os.environ.get("EDINET_API_KEY", "")
-                res = await client.get(EDINET_URL, params={"date": target, "type": 2, "Subscription-Key": api_key})
-                res.raise_for_status()
-                if not res.text.strip():
-                    print(f"EDINET {target}: empty response (weekend/holiday)")
-                    continue
-                results = res.json().get("results", [])
-            except Exception as e:
-                print(f"EDINET {target}: fetch error — {e}")
-                continue
+                content = await asyncio.to_thread(doc.fetch)
+            except Exception:
+                content = b""
 
-            timely = [
-                doc for doc in results
-                if doc.get("formCode", "").startswith("140") and doc.get("docID")
-            ][:EDINET_CAP_PER_DAY]
-
-            if not timely:
-                print(f"EDINET {target}: 0 timely disclosures")
-                continue
-
-            print(f"EDINET {target}: {len(timely)} docs")
-            for doc in timely:
-                doc_id = doc["docID"]
-                url = (
+            doc_text = _extract_text_from_zip(content)
+            published = (
+                doc.filing_datetime.isoformat()
+                if doc.filing_datetime
+                else datetime.now(timezone.utc).isoformat()
+            )
+            article = {
+                "url": (
                     f"https://disclosure.edinet-fsa.go.jp/E01EW/BLMainController.jsp"
                     f"?uji.verb=W1E63011CXP001&uji.bean=ee.bean.W1E63011.EEW1E63011Bean"
-                    f"&TID=W1E63011&PID=W1E63011&SESSIONKEY=&headFlg=false&docID={doc_id}"
-                )
-                article = {
-                    "url": url,
-                    "source_name": "EDINET",
-                    "credibility_tier": 1,
-                    "country": "JP",
-                    "published_at": doc.get("submitDateTime") or datetime.now(timezone.utc).isoformat(),
-                    "raw_text": (
-                        f"EDINET Filing: {doc.get('formCode')} by {doc.get('filerName')}. "
-                        f"Filed: {doc.get('submitDateTime')}. Document ID: {doc_id}."
-                    ),
-                }
-                if await run_pipeline(article):
-                    total += 1
-                    print(f"  stored EDINET doc {doc_id} ({doc.get('filerName', '')[:40]})")
+                    f"&TID=W1E63011&PID=W1E63011&SESSIONKEY=&headFlg=false&docID={doc.doc_id}"
+                ),
+                "source_name": "EDINET",
+                "credibility_tier": 1,
+                "country": "JP",
+                "published_at": published,
+                "raw_text": doc_text or (
+                    f"EDINET Filing: {doc.doc_type_name} by {doc.filer_name}. "
+                    f"Filed: {published}. Document ID: {doc.doc_id}."
+                ),
+            }
+            if await run_pipeline(article):
+                total += 1
+                print(f"  stored EDINET doc {doc.doc_id} ({(doc.filer_name or '')[:40]})")
 
     print(f"\nEDINET backfill complete: {total} articles stored")
 

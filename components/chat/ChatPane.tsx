@@ -24,7 +24,6 @@ export function ChatPane() {
     setMessages(nextMessages)
     setStreaming(true)
 
-    // Add empty assistant message that we'll stream into
     setMessages((prev) => [...prev, { role: 'assistant', content: '' }])
 
     try {
@@ -69,15 +68,33 @@ export function ChatPane() {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="px-3 py-2 border-b border-[#131d2e] bg-[#0a0f1a] flex-shrink-0">
-        <span className="font-mono text-[9px] tracking-widest text-[#2a3a52]">
-          RESEARCH CHAT
-        </span>
+      {/* Header */}
+      <div className="px-4 pt-4 pb-3 flex-shrink-0">
+        <div className="flex items-center justify-between">
+          <h2 className="text-[11px] tracking-[0.15em] text-slate-500 font-medium">
+            RESEARCH CHAT
+          </h2>
+          {streaming && (
+            <span className="flex items-center gap-1.5 text-[9px] tracking-wider text-blue-400">
+              <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
+              THINKING
+            </span>
+          )}
+        </div>
       </div>
-      <div className="flex-1 overflow-y-auto px-2 py-2 flex flex-col gap-2">
+
+      {/* Messages */}
+      <div className="flex-1 overflow-y-auto px-3 pb-2 flex flex-col gap-3">
         {messages.length === 0 && (
-          <div className="text-center text-[#2a3a52] font-mono text-xs py-8">
-            ask a question about Japan macro or crypto
+          <div className="flex flex-col items-center justify-center h-full gap-3 pb-8">
+            <div className="w-10 h-10 rounded-full bg-[#0d1424] ring-1 ring-blue-900/40 flex items-center justify-center">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+              </svg>
+            </div>
+            <p className="text-slate-600 text-[11px] text-center leading-relaxed max-w-[180px]">
+              Ask about Japan macro, regulatory filings, or crypto markets
+            </p>
           </div>
         )}
         {messages.map((msg, i) => (
@@ -85,6 +102,7 @@ export function ChatPane() {
         ))}
         <div ref={bottomRef} />
       </div>
+
       <ChatInput onSubmit={handleSubmit} disabled={streaming} />
     </div>
   )

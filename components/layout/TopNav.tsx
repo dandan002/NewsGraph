@@ -8,28 +8,25 @@ export async function TopNav() {
   } = await supabase.auth.getUser()
 
   return (
-    <nav className="bg-[#0a0f1a] border-b border-[#131d2e] px-4 py-2 flex items-center justify-between flex-shrink-0">
-      <span className="text-blue-400 font-mono font-bold tracking-widest text-sm">
-        NEWSGRAPH
-      </span>
-      <div className="flex gap-6 font-mono text-xs text-[#2a3a52]">
-        <Link
-          href="/dashboard"
-          className="hover:text-blue-400 transition-colors"
-        >
-          DASHBOARD
-        </Link>
-        <Link href="/filings" className="hover:text-blue-400 transition-colors">
-          FILINGS
-        </Link>
-        <span className="cursor-not-allowed opacity-40">SETTINGS</span>
+    <nav className="bg-[#0a0f1a] flex-shrink-0 flex items-center justify-between px-5 h-12 border-b border-[#131d2e]">
+      {/* Brand */}
+      <div className="flex items-center gap-3">
+        <span className="text-white font-bold tracking-[0.2em] text-sm">NEWSGRAPH</span>
+        <span className="text-[#1e3a5a] text-xs">|</span>
+        <span className="text-[#3a5a7a] text-[10px] tracking-widest font-medium">
+          MACRO INTELLIGENCE
+        </span>
       </div>
-      <div className="font-mono text-xs text-[#2a3a52]">
-        {user?.email}&nbsp;·&nbsp;
+
+      {/* Right: user */}
+      <div className="flex items-center gap-3 text-[11px] text-[#3a5a7a]">
+        {user?.email && (
+          <span className="text-[#2a4060]">{user.email}</span>
+        )}
         <form action="/auth/signout" method="POST" className="inline">
           <button
             type="submit"
-            className="text-red-500 hover:text-red-400 transition-colors"
+            className="text-[#3a5a7a] hover:text-red-400 transition-colors text-[11px]"
           >
             sign out
           </button>

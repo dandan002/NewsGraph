@@ -1,57 +1,68 @@
-import os
-import httpx
+import io
+import asyncio
+import zipfile
 from datetime import datetime, timezone, date
 
-EDINET_INDEX_URL = "https://disclosure2.edinet-fsa.go.jp/api/v2/documents.json"
+import edinet_tools
+from sources.utils import extract_text
+
+# Annual, quarterly, semi-annual, extraordinary reports
+EDINET_FORM_CODES = {"120", "140", "160", "180"}
+
+
+def _extract_text_from_zip(content: bytes) -> str:
+    """Extract readable text from an EDINET document ZIP, or return empty string."""
+    try:
+        if content[:2] != b"PK":
+            return ""
+        with zipfile.ZipFile(io.BytesIO(content)) as zf:
+            html_files = [n for n in zf.namelist() if n.lower().endswith((".htm", ".html"))]
+            if not html_files:
+                return ""
+            # Prefer the largest HTML file (most likely the main document body)
+            html_files.sort(key=lambda n: zf.getinfo(n).file_size, reverse=True)
+            html = zf.read(html_files[0]).decode("utf-8", errors="replace")
+            return extract_text(html, max_chars=6000)
+    except Exception:
+        return ""
 
 
 async def fetch_edinet() -> list[dict]:
-    """Fetch today's EDINET filing index and return timely disclosure docs."""
+    """Fetch today's EDINET filing index and return annual, quarterly, semi-annual, and extraordinary docs."""
     today = date.today().strftime("%Y-%m-%d")
-    api_key = os.environ.get("EDINET_API_KEY", "")
 
-    async with httpx.AsyncClient(timeout=20.0, follow_redirects=True) as client:
-        res = await client.get(
-            EDINET_INDEX_URL,
-            params={"date": today, "type": 2, "Subscription-Key": api_key},
-        )
-        res.raise_for_status()
-        if not res.text.strip():
-            return []
-        data = res.json()
-    results = data.get("results", [])
+    docs = await asyncio.to_thread(edinet_tools.documents, today)
+    docs = [d for d in docs if d.doc_type_code in EDINET_FORM_CODES][:30]
 
     articles = []
+    for doc in docs:
+        try:
+            content = await asyncio.to_thread(doc.fetch)
+        except Exception:
+            content = b""
 
-    # Filter for timely disclosures first, then cap at 30
-    timely_docs = [
-        doc for doc in results
-        if doc.get("formCode", "").startswith("140") and doc.get("docID")
-    ]
-
-    for doc in timely_docs[:30]:
-        doc_id = doc.get("docID")
-        doc_type = doc.get("formCode", "")
-        company = doc.get("filerName", "")
-        submitted_at = doc.get("submitDateTime", "")
-
-        url = (
-            f"https://disclosure.edinet-fsa.go.jp/E01EW/BLMainController.jsp"
-            f"?uji.verb=W1E63011CXP001&uji.bean=ee.bean.W1E63011.EEW1E63011Bean"
-            f"&TID=W1E63011&PID=W1E63011&SESSIONKEY=&headFlg=false&docID={doc_id}"
+        doc_text = _extract_text_from_zip(content)
+        raw_text = doc_text or (
+            f"EDINET Filing: {doc.doc_type_name} by {doc.filer_name}. "
+            f"Filed: {doc.filing_datetime}. Document ID: {doc.doc_id}."
         )
 
-        raw_text = (
-            f"EDINET Filing: {doc_type} by {company}. "
-            f"Filed: {submitted_at}. Document ID: {doc_id}."
+        published = (
+            doc.filing_datetime.isoformat()
+            if doc.filing_datetime
+            else datetime.now(timezone.utc).isoformat()
         )
 
         articles.append({
-            "url": url,
+            "url": (
+                f"https://disclosure.edinet-fsa.go.jp/E01EW/BLMainController.jsp"
+                f"?uji.verb=W1E63011CXP001&uji.bean=ee.bean.W1E63011.EEW1E63011Bean"
+                f"&TID=W1E63011&PID=W1E63011&SESSIONKEY=&headFlg=false&docID={doc.doc_id}"
+            ),
             "source_name": "EDINET",
             "credibility_tier": 1,
             "country": "JP",
-            "published_at": submitted_at or datetime.now(timezone.utc).isoformat(),
+            "published_at": published,
             "raw_text": raw_text,
         })
 

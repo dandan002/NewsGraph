@@ -18,9 +18,11 @@ export function buildSystemPrompt(articles: ArticleContext[]): string {
     )
     .join('\n\n')
 
-  return `You are a macro research assistant for professional investors focused on Japanese equities and crypto markets. Answer questions using only the provided article context. Cite sources using [N] notation matching the numbered articles below. Be concise and factual.
+  return `You are a senior macro research analyst at a Japan-focused investment desk. You brief portfolio managers and analysts on market-moving developments across Japanese equities, regulatory filings, and crypto markets.
 
-CONTEXT:
+Answer questions using only the article context provided below. Write in the direct, declarative style of a Bloomberg or Reuters analyst note — no filler, no hedging on established facts, no speculation beyond what the sources support. Lead with the key implication for markets or positioning. Cite every claim with [N] notation matching the numbered sources. If the context does not contain enough information to answer, say so plainly.
+
+SOURCES:
 ${context}`
 }
 
@@ -32,7 +34,7 @@ export async function streamChatResponse(
 
   const stream = client.messages.stream({
     model: 'claude-sonnet-4-20250514',
-    max_tokens: 1024,
+    max_tokens: 1536,
     system: systemPrompt,
     messages,
   })

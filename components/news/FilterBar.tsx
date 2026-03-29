@@ -9,9 +9,9 @@ interface FilterBarProps {
 
 const TIERS = [
   { label: 'All', value: null },
-  { label: 'Regulatory', value: 1 },
-  { label: 'Press', value: 2 },
-  { label: 'Wire', value: 3 },
+  { label: 'REG', value: 1 },
+  { label: 'PRESS', value: 2 },
+  { label: 'WIRE', value: 3 },
 ]
 
 const DATE_RANGES = [
@@ -22,37 +22,36 @@ const DATE_RANGES = [
 
 export function FilterBar({ tier, dateRange, onTierChange, onDateRangeChange }: FilterBarProps) {
   return (
-    <div className="flex gap-2 flex-wrap">
-      <div className="flex gap-1">
-        {TIERS.map((t) => (
-          <button
-            key={String(t.value)}
-            onClick={() => onTierChange(t.value)}
-            className={`font-mono text-[9px] px-2 py-1 rounded border transition-colors ${
-              tier === t.value
-                ? 'border-blue-500 text-blue-300 bg-[#0d1a2e]'
-                : 'border-[#1a2740] text-[#4a6080] bg-[#0d1525] hover:border-blue-600'
-            }`}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
-      <div className="flex gap-1 ml-auto">
-        {DATE_RANGES.map((d) => (
-          <button
-            key={d.value}
-            onClick={() => onDateRangeChange(d.value)}
-            className={`font-mono text-[9px] px-2 py-1 rounded border transition-colors ${
-              dateRange === d.value
-                ? 'border-blue-500 text-blue-300 bg-[#0d1a2e]'
-                : 'border-[#1a2740] text-[#4a6080] bg-[#0d1525] hover:border-blue-600'
-            }`}
-          >
-            {d.label}
-          </button>
-        ))}
-      </div>
+    <div className="flex items-center gap-1.5 flex-wrap">
+      {TIERS.map((t) => (
+        <button
+          key={String(t.value)}
+          onClick={() => onTierChange(t.value)}
+          className={`text-[10px] tracking-wider px-2.5 py-1 rounded-full transition-all duration-150 ${
+            tier === t.value
+              ? 'bg-blue-500/20 text-blue-300 ring-1 ring-blue-500/40'
+              : 'text-slate-600 hover:text-slate-400 hover:bg-white/5'
+          }`}
+        >
+          {t.label}
+        </button>
+      ))}
+
+      <div className="h-3 w-px bg-[#1a2a3a] mx-1" />
+
+      {DATE_RANGES.map((d) => (
+        <button
+          key={d.value}
+          onClick={() => onDateRangeChange(d.value)}
+          className={`text-[10px] tracking-wider px-2.5 py-1 rounded-full transition-all duration-150 ${
+            dateRange === d.value
+              ? 'bg-slate-500/20 text-slate-300 ring-1 ring-slate-500/30'
+              : 'text-slate-600 hover:text-slate-400 hover:bg-white/5'
+          }`}
+        >
+          {d.label}
+        </button>
+      ))}
     </div>
   )
 }

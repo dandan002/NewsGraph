@@ -14,28 +14,25 @@ interface ChatMessageProps {
 export function ChatMessage({ role, content, citations = [] }: ChatMessageProps) {
   const isUser = role === 'user'
 
-  // Parse [N] citation markers in content
   const parts = content.split(/(\[\d+\])/g)
 
   return (
-    <div
-      className={`rounded p-2.5 border-l-2 ${
-        isUser ? 'border-l-[#1e3a5a] bg-[#0d1525]' : 'border-l-blue-500 bg-[#0a1628]'
-      }`}
-    >
+    <div className={`flex flex-col gap-1 ${isUser ? 'items-end' : 'items-start'}`}>
+      <span className={`text-[9px] tracking-widest ${isUser ? 'text-slate-600' : 'text-blue-500/70'}`}>
+        {isUser ? 'YOU' : 'ANALYST'}
+      </span>
       <div
-        className={`font-mono text-[9px] mb-1.5 ${
-          isUser ? 'text-slate-500' : 'text-blue-400'
+        className={`max-w-[92%] rounded-xl px-3.5 py-2.5 text-[11.5px] leading-relaxed ${
+          isUser
+            ? 'bg-[#131d2e] text-slate-300'
+            : 'bg-[#0d1a2e] text-slate-200 ring-1 ring-blue-900/40'
         }`}
       >
-        {isUser ? 'analyst' : 'research assistant'}
-      </div>
-      <div className="font-mono text-[11px] text-slate-300 leading-relaxed">
         {parts.map((part, i) => {
           const match = part.match(/^\[(\d+)\]$/)
           if (match) {
             return (
-              <span key={i} className="text-blue-400 font-semibold">
+              <span key={i} className="text-blue-400 font-semibold text-[10px]">
                 {part}
               </span>
             )
@@ -43,15 +40,16 @@ export function ChatMessage({ role, content, citations = [] }: ChatMessageProps)
           return <span key={i}>{part}</span>
         })}
       </div>
+
       {citations.length > 0 && (
-        <div className="mt-2 pt-2 border-t border-[#131d2e] flex flex-col gap-0.5">
+        <div className="flex flex-col gap-0.5 w-full max-w-[92%] mt-0.5">
           {citations.map((c) => (
             <a
               key={c.index}
               href={c.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="font-mono text-[9px] text-[#2a3a52] hover:text-blue-400 transition-colors"
+              className="text-[9px] text-slate-700 hover:text-blue-400 transition-colors"
             >
               [{c.index}] {c.source} · {c.date}
             </a>

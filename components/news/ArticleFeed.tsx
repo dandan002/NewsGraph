@@ -31,7 +31,6 @@ export function ArticleFeed({ initialTier }: ArticleFeedProps) {
     }
   }, [tier, dateRange])
 
-  // Fetch on mount and when filters change
   useEffect(() => {
     fetchArticles(query)
   }, [tier, dateRange]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -43,45 +42,57 @@ export function ArticleFeed({ initialTier }: ArticleFeedProps) {
 
   return (
     <div className="flex flex-col h-full">
-      {/* Search + filters header */}
-      <div className="px-3 py-3 border-b border-[#131d2e] bg-[#0a0f1a] flex-shrink-0">
-        <form onSubmit={handleSearch} className="flex gap-2 mb-2">
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="search articles... (semantic)"
-            className="flex-1 bg-[#0d1525] border border-[#1a2740] rounded px-3 py-1.5 text-slate-300 font-mono text-[11px] placeholder:text-[#2a3a52] focus:outline-none focus:border-blue-600"
-          />
+      {/* Panel header */}
+      <div className="px-4 pt-4 pb-3 flex-shrink-0">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-[11px] tracking-[0.15em] text-slate-500 font-medium">
+            INTELLIGENCE FEED
+          </h2>
+          <span className="flex items-center gap-1.5 text-[9px] tracking-wider text-emerald-400">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            LIVE
+          </span>
+        </div>
+
+        {/* Search bar */}
+        <form onSubmit={handleSearch} className="flex items-center gap-2 mb-3">
+          <div className="flex-1 flex items-center gap-2 bg-[#0d1424] rounded-lg px-3 py-2">
+            <svg className="text-slate-600 flex-shrink-0" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search articles semantically..."
+              className="flex-1 bg-transparent text-slate-300 text-[11px] placeholder:text-slate-600 focus:outline-none"
+            />
+          </div>
           <button
             type="submit"
-            className="bg-[#1a3a6e] hover:bg-[#1e4a8e] text-blue-300 font-mono text-[10px] px-3 py-1.5 rounded transition-colors"
+            className="bg-blue-600 hover:bg-blue-500 text-white text-[10px] tracking-wider font-medium px-3 py-2 rounded-lg transition-colors"
           >
             SEARCH
           </button>
         </form>
-        <div className="flex items-center gap-2">
-          <FilterBar
-            tier={tier}
-            dateRange={dateRange}
-            onTierChange={setTier}
-            onDateRangeChange={setDateRange}
-          />
-          <span className="font-mono text-[9px] text-blue-500 border border-[#1a3a5e] rounded px-1.5 py-0.5 ml-1">
-            ● LIVE
-          </span>
-        </div>
+
+        <FilterBar
+          tier={tier}
+          dateRange={dateRange}
+          onTierChange={setTier}
+          onDateRangeChange={setDateRange}
+        />
       </div>
 
       {/* Article list */}
-      <div className="flex-1 overflow-y-auto px-2 py-2 flex flex-col gap-2">
+      <div className="flex-1 overflow-y-auto px-3 pb-3 flex flex-col gap-1.5">
         {loading && (
-          <div className="text-center text-slate-600 font-mono text-xs py-8">
-            loading...
+          <div className="text-center text-slate-700 text-xs py-12 tracking-wider">
+            LOADING...
           </div>
         )}
         {!loading && articles.length === 0 && (
-          <div className="text-center text-slate-600 font-mono text-xs py-8">
-            no articles found
+          <div className="text-center text-slate-700 text-xs py-12 tracking-wider">
+            NO ARTICLES FOUND
           </div>
         )}
         {articles.map((article) => (

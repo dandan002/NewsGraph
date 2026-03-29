@@ -12,12 +12,14 @@ interface Snapshot {
 
 export function MarketsPanel() {
   const [snapshots, setSnapshots] = useState<Snapshot[]>([])
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
 
   async function fetchMarkets() {
     const res = await fetch('/api/markets')
     if (!res.ok) return
     const data = await res.json()
     setSnapshots(data.snapshots ?? [])
+    setLastUpdated(new Date())
   }
 
   useEffect(() => {
@@ -27,11 +29,17 @@ export function MarketsPanel() {
   }, [])
 
   return (
-    <div className="h-full bg-[#0a0f1a] px-2 py-3 flex flex-col">
-      <div className="font-mono text-[9px] tracking-widest text-[#2a3a52] mb-1">
-        MARKETS
+    <div className="h-full flex flex-col px-2 py-4 gap-2">
+      <div className="flex items-center justify-between px-1 mb-1">
+        <h2 className="text-[10px] tracking-[0.15em] text-slate-500 font-medium">MARKETS</h2>
+        {lastUpdated && (
+          <span className="text-[8px] text-slate-700">
+            ↻ {lastUpdated.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+          </span>
+        )}
       </div>
-      <div className="flex flex-col gap-1 flex-1">
+
+      <div className="flex flex-col gap-2 flex-1">
         {['BTC', 'ETH', 'SOL'].map((asset) => {
           const snap = snapshots.find((s) => s.asset === asset)
           return (
@@ -45,8 +53,10 @@ export function MarketsPanel() {
           )
         })}
       </div>
-      <div className="font-mono text-[8px] text-[#1e3a5a] mt-auto pt-2">
-        ↻ 30s
+
+      <div className="px-1 pt-2 border-t border-[#0f1a2e]">
+        <div className="text-[8.5px] text-slate-700 tracking-wider">Hyperliquid</div>
+        <div className="text-[8px] text-slate-800 mt-0.5">30s refresh</div>
       </div>
     </div>
   )
