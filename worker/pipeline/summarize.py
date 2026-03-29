@@ -1,7 +1,7 @@
 import os
 import anthropic
 
-_client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY", ""))
+_client = anthropic.AsyncAnthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
 
 SYSTEM_PROMPT = (
     "You are a macro research analyst. Given a foreign-language news article, "
@@ -14,7 +14,7 @@ async def summarize_article(raw_text: str) -> str:
     """Translate and summarize a foreign-language article in one Claude call."""
     # Truncate to avoid token limits
     text = raw_text[:8000]
-    message = _client.messages.create(
+    message = await _client.messages.create(
         model="claude-sonnet-4-20250514",
         max_tokens=256,
         system=SYSTEM_PROMPT,
