@@ -44,7 +44,12 @@ export function ArticleCard({ article }: { article: Article }) {
   const snippet = article.summary_en.slice(headline.length).trim().split('.')[0]
 
   return (
-    <div className="group flex gap-3 bg-[#0d1424] hover:bg-[#111c30] rounded-lg p-3 transition-colors duration-150 cursor-default">
+    <a
+      href={article.url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="group flex gap-3 bg-[#0d1424] hover:bg-[#111c30] rounded-lg p-3 transition-colors duration-150"
+    >
       {/* Accent bar */}
       <div className={`w-0.5 rounded-full flex-shrink-0 ${tier.bar}`} />
 
@@ -71,17 +76,10 @@ export function ArticleCard({ article }: { article: Article }) {
           <span className="text-slate-600">{article.source_name}</span>
           <span>·</span>
           <span>{timeAgo(article.published_at)}</span>
-          <a
-            href={article.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="ml-auto text-[#2a4060] hover:text-blue-400 transition-colors opacity-0 group-hover:opacity-100"
-          >
-            ↗
-          </a>
+          <span className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity">↗</span>
         </div>
       </div>
-    </div>
+    </a>
   )
 }
 

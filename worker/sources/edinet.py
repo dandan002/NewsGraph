@@ -1,10 +1,14 @@
 import io
+import os
 import asyncio
 import zipfile
 from datetime import datetime, timezone, date
 
+import httpx
 import edinet_tools
 from sources.utils import extract_text
+
+EDINET_DOC_URL = "https://disclosure.edinet-fsa.go.jp/api/v2/documents/{doc_id}"
 
 # Annual, quarterly, semi-annual, extraordinary reports
 EDINET_FORM_CODES = {"120", "140", "160", "180"}
@@ -27,43 +31,51 @@ def _extract_text_from_zip(content: bytes) -> str:
         return ""
 
 
+async def _fetch_doc_html(client: httpx.AsyncClient, doc_id: str, api_key: str) -> bytes:
+    """Download EDINET primary document zip (type=1, HTML) and return raw bytes."""
+    try:
+        res = await client.get(
+            EDINET_DOC_URL.format(doc_id=doc_id),
+            params={"type": 1, "Subscription-Key": api_key},
+            timeout=30.0,
+        )
+        res.raise_for_status()
+        return res.content
+    except Exception:
+        return b""
+
+
 async def fetch_edinet() -> list[dict]:
     """Fetch today's EDINET filing index and return annual, quarterly, semi-annual, and extraordinary docs."""
     today = date.today().strftime("%Y-%m-%d")
+    api_key = os.environ.get("EDINET_API_KEY", "")
 
     docs = await asyncio.to_thread(edinet_tools.documents, today)
     docs = [d for d in docs if d.doc_type_code in EDINET_FORM_CODES][:30]
 
     articles = []
-    for doc in docs:
-        try:
-            content = await asyncio.to_thread(doc.fetch)
-        except Exception:
-            content = b""
-
-        doc_text = _extract_text_from_zip(content)
-        raw_text = doc_text or (
-            f"EDINET Filing: {doc.doc_type_name} by {doc.filer_name}. "
-            f"Filed: {doc.filing_datetime}. Document ID: {doc.doc_id}."
-        )
-
-        published = (
-            doc.filing_datetime.isoformat()
-            if doc.filing_datetime
-            else datetime.now(timezone.utc).isoformat()
-        )
-
-        articles.append({
-            "url": (
-                f"https://disclosure.edinet-fsa.go.jp/E01EW/BLMainController.jsp"
-                f"?uji.verb=W1E63011CXP001&uji.bean=ee.bean.W1E63011.EEW1E63011Bean"
-                f"&TID=W1E63011&PID=W1E63011&SESSIONKEY=&headFlg=false&docID={doc.doc_id}"
-            ),
-            "source_name": "EDINET",
-            "credibility_tier": 1,
-            "country": "JP",
-            "published_at": published,
-            "raw_text": raw_text,
-        })
+    async with httpx.AsyncClient(timeout=20.0, follow_redirects=True) as client:
+        for doc in docs:
+            content = await _fetch_doc_html(client, doc.doc_id, api_key)
+            doc_text = _extract_text_from_zip(content)
+            raw_text = doc_text or (
+                f"EDINET Filing: {doc.doc_type_name} by {doc.filer_name}. "
+                f"Filed: {doc.filing_datetime}. Document ID: {doc.doc_id}."
+            )
+            published = (
+                doc.filing_datetime.isoformat()
+                if doc.filing_datetime
+                else datetime.now(timezone.utc).isoformat()
+            )
+            articles.append({
+                "url": (
+                    f"https://disclosure2.edinet-fsa.go.jp/PLD_0001.aspx?DocumentID={doc.doc_id}"
+                ),
+                "source_name": "EDINET",
+                "credibility_tier": 1,
+                "country": "JP",
+                "published_at": published,
+                "raw_text": raw_text,
+            })
 
     return articles

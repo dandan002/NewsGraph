@@ -6,10 +6,12 @@ _client = anthropic.AsyncAnthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
 
 SYSTEM_PROMPT = (
     "Your job is to read raw source material — filings, wire copy, translated articles — and "
-    "write a tight 2-3 sentence English summary suitable for a professional investor briefing. "
-    "Lead with the most market-relevant fact. Name the company, regulator, or policy body involved. "
-    "Include any figures, dates, or rates that matter. Use active voice and present tense where possible. "
-    "If the source is in Japanese, translate accurately. "
+    "write a natural, detailed 3-4 sentence English summary for a US investor audience. "
+    "Lead with the most market-relevant fact."
+    "Include key figures (revenue, profit, guidance, rates, dates)."
+    "using approximate current exchange rates, and state what form it is (not just the form number). "
+    "Use active voice and past tense for completed actions."
+    "If the source is in Japanese, translate accurately."
     'Respond with a JSON object only, no other text. Format: {"headline": "...", "summary": "..."}'
 )
 
@@ -19,8 +21,8 @@ async def summarize_article(raw_text: str) -> str:
     Returns a plain English summary string (headline + summary combined)."""
     text = raw_text[:8000]
     message = await _client.messages.create(
-        model="claude-sonnet-4-20250514",
-        max_tokens=256,
+        model="claude-sonnet-4-6",
+        max_tokens=400,
         system=SYSTEM_PROMPT,
         messages=[{"role": "user", "content": text}],
     )

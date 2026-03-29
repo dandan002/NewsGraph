@@ -23,7 +23,7 @@ load_dotenv()
 from pipeline.summarize import summarize_article
 from pipeline.embed import embed_text
 from pipeline.store import upsert_article
-from sources.edinet import EDINET_FORM_CODES, _extract_text_from_zip
+from sources.edinet import EDINET_FORM_CODES, _extract_text_from_zip, _fetch_doc_html
 from sources.gdelt import _parse_gkg_csv, parse_gkg_articles, _has_japan_location
 
 # --- Config ---
@@ -52,51 +52,48 @@ async def backfill_edinet(days: int) -> None:
     today = date.today()
     total = 0
 
-    for i in range(days):
-        target = (today - timedelta(days=i)).strftime("%Y-%m-%d")
-        try:
-            docs = await asyncio.to_thread(edinet_tools.documents, target)
-        except Exception as e:
-            print(f"EDINET {target}: fetch error — {e}")
-            continue
+    api_key = os.environ.get("EDINET_API_KEY", "")
 
-        docs = [d for d in docs if d.doc_type_code in EDINET_FORM_CODES][:EDINET_CAP_PER_DAY]
-
-        if not docs:
-            print(f"EDINET {target}: 0 matching docs")
-            continue
-
-        print(f"EDINET {target}: {len(docs)} docs")
-        for doc in docs:
+    async with httpx.AsyncClient(timeout=20.0, follow_redirects=True) as client:
+        for i in range(days):
+            target = (today - timedelta(days=i)).strftime("%Y-%m-%d")
             try:
-                content = await asyncio.to_thread(doc.fetch)
-            except Exception:
-                content = b""
+                docs = await asyncio.to_thread(edinet_tools.documents, target)
+            except Exception as e:
+                print(f"EDINET {target}: fetch error — {e}")
+                continue
 
-            doc_text = _extract_text_from_zip(content)
-            published = (
-                doc.filing_datetime.isoformat()
-                if doc.filing_datetime
-                else datetime.now(timezone.utc).isoformat()
-            )
-            article = {
-                "url": (
-                    f"https://disclosure.edinet-fsa.go.jp/E01EW/BLMainController.jsp"
-                    f"?uji.verb=W1E63011CXP001&uji.bean=ee.bean.W1E63011.EEW1E63011Bean"
-                    f"&TID=W1E63011&PID=W1E63011&SESSIONKEY=&headFlg=false&docID={doc.doc_id}"
-                ),
-                "source_name": "EDINET",
-                "credibility_tier": 1,
-                "country": "JP",
-                "published_at": published,
-                "raw_text": doc_text or (
-                    f"EDINET Filing: {doc.doc_type_name} by {doc.filer_name}. "
-                    f"Filed: {published}. Document ID: {doc.doc_id}."
-                ),
-            }
-            if await run_pipeline(article):
-                total += 1
-                print(f"  stored EDINET doc {doc.doc_id} ({(doc.filer_name or '')[:40]})")
+            docs = [d for d in docs if d.doc_type_code in EDINET_FORM_CODES][:EDINET_CAP_PER_DAY]
+
+            if not docs:
+                print(f"EDINET {target}: 0 matching docs")
+                continue
+
+            print(f"EDINET {target}: {len(docs)} docs")
+            for doc in docs:
+                content = await _fetch_doc_html(client, doc.doc_id, api_key)
+                doc_text = _extract_text_from_zip(content)
+                published = (
+                    doc.filing_datetime.isoformat()
+                    if doc.filing_datetime
+                    else datetime.now(timezone.utc).isoformat()
+                )
+                article = {
+                    "url": (
+                        f"https://disclosure2.edinet-fsa.go.jp/PLD_0001.aspx?DocumentID={doc.doc_id}"
+                    ),
+                    "source_name": "EDINET",
+                    "credibility_tier": 1,
+                    "country": "JP",
+                    "published_at": published,
+                    "raw_text": doc_text or (
+                        f"EDINET Filing: {doc.doc_type_name} by {doc.filer_name}. "
+                        f"Filed: {published}. Document ID: {doc.doc_id}."
+                    ),
+                }
+                if await run_pipeline(article):
+                    total += 1
+                    print(f"  stored EDINET doc {doc.doc_id} ({(doc.filer_name or '')[:40]})")
 
     print(f"\nEDINET backfill complete: {total} articles stored")
 
