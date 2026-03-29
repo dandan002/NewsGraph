@@ -1,9 +1,12 @@
 import httpx
 import csv
 import io
+import sys
 import zipfile
 from datetime import datetime, timezone
 from sources.utils import extract_text
+
+csv.field_size_limit(min(sys.maxsize, 10_000_000))
 
 # GDELT GKG v2 15-minute CSV master list
 GDELT_MASTER_URL = "http://data.gdeltproject.org/gdeltv2/lastupdate.txt"
@@ -37,37 +40,39 @@ async def parse_gkg_articles(csv_text: str, client: httpx.AsyncClient, cap: int 
     reader = csv.reader(io.StringIO(csv_text, newline=""), delimiter="\t")
 
     for row in reader:
-        if len(row) < 5:
+        # GKG v2 tab-delimited fields (0-indexed):
+        # 0: GKGRECORDID (YYYYMMDDHHMMSS-N), 1: DATE, 3: source name,
+        # 4: document URL, 9: V1LOCATIONS, 10: V2ENHANCEDLOCATIONS
+        if len(row) < 10:
             continue
         try:
-            if not _has_japan_location(row[4]):
+            if not _has_japan_location(row[9]):
                 continue
 
-            source_urls = row[10].split("<UDIV>") if len(row) > 10 else []
-            source_names = row[9].split(",") if len(row) > 9 else []
+            url = row[4].strip()
+            if not url.startswith("http"):
+                continue
+
+            src = row[3].strip() or "GDELT"
             pub_dt = datetime.strptime(row[0][:14], "%Y%m%d%H%M%S").replace(tzinfo=timezone.utc)
 
-            for url, src in zip(source_urls[:3], source_names[:3]):
-                url = url.strip()
-                if not url.startswith("http"):
-                    continue
-                raw_text = f"Source: {src.strip()}. Article URL: {url}."
-                try:
-                    page = await client.get(url, timeout=8.0)
-                    raw_text = extract_text(page.text, max_chars=5000)
-                except Exception:
-                    pass
+            raw_text = f"Source: {src}. Article URL: {url}."
+            try:
+                page = await client.get(url, timeout=8.0)
+                raw_text = extract_text(page.text, max_chars=5000)
+            except Exception:
+                pass
 
-                articles.append({
-                    "url": url,
-                    "source_name": src.strip() or "GDELT",
-                    "credibility_tier": 3,
-                    "country": "JP",
-                    "published_at": pub_dt.isoformat(),
-                    "raw_text": raw_text,
-                })
-                if len(articles) >= cap:
-                    return articles
+            articles.append({
+                "url": url,
+                "source_name": src,
+                "credibility_tier": 3,
+                "country": "JP",
+                "published_at": pub_dt.isoformat(),
+                "raw_text": raw_text,
+            })
+            if len(articles) >= cap:
+                return articles
         except Exception:
             continue
 

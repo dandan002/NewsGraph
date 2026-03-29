@@ -1,21 +1,24 @@
+import os
 import httpx
 from datetime import datetime, timezone, date
 
-EDINET_INDEX_URL = "https://disclosure.edinet-fsa.go.jp/api/v2/documents.json"
+EDINET_INDEX_URL = "https://disclosure2.edinet-fsa.go.jp/api/v2/documents.json"
 
 
 async def fetch_edinet() -> list[dict]:
     """Fetch today's EDINET filing index and return timely disclosure docs."""
     today = date.today().strftime("%Y-%m-%d")
+    api_key = os.environ.get("EDINET_API_KEY", "")
 
-    async with httpx.AsyncClient(timeout=20.0) as client:
+    async with httpx.AsyncClient(timeout=20.0, follow_redirects=True) as client:
         res = await client.get(
             EDINET_INDEX_URL,
-            params={"date": today, "type": 2},  # type=2: documents with attachments
+            params={"date": today, "type": 2, "Subscription-Key": api_key},
         )
         res.raise_for_status()
-
-    data = res.json()
+        if not res.text.strip():
+            return []
+        data = res.json()
     results = data.get("results", [])
 
     articles = []

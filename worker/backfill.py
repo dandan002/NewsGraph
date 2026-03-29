@@ -33,7 +33,7 @@ GDELT_FILES_PER_DAY = 2  # GDELT GKG files to sample per day (96 files/day total
 EDINET_CAP_PER_DAY = 15  # Max EDINET timely disclosures per day
 
 GDELT_MASTER_URL = "http://data.gdeltproject.org/gdeltv2/masterfilelist.txt"
-EDINET_URL = "https://disclosure.edinet-fsa.go.jp/api/v2/documents.json"
+EDINET_URL = "https://disclosure2.edinet-fsa.go.jp/api/v2/documents.json"
 
 
 async def run_pipeline(article: dict) -> bool:
@@ -54,12 +54,16 @@ async def backfill_edinet(days: int) -> None:
     today = date.today()
     total = 0
 
-    async with httpx.AsyncClient(timeout=20.0) as client:
+    async with httpx.AsyncClient(timeout=20.0, follow_redirects=True) as client:
         for i in range(days):
             target = (today - timedelta(days=i)).strftime("%Y-%m-%d")
             try:
-                res = await client.get(EDINET_URL, params={"date": target, "type": 2})
+                api_key = os.environ.get("EDINET_API_KEY", "")
+                res = await client.get(EDINET_URL, params={"date": target, "type": 2, "Subscription-Key": api_key})
                 res.raise_for_status()
+                if not res.text.strip():
+                    print(f"EDINET {target}: empty response (weekend/holiday)")
+                    continue
                 results = res.json().get("results", [])
             except Exception as e:
                 print(f"EDINET {target}: fetch error — {e}")
