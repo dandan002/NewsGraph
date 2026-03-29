@@ -95,7 +95,7 @@ async def backfill_edinet(days: int) -> None:
                 }
                 if await run_pipeline(article):
                     total += 1
-                    print(f"  stored EDINET doc {doc_id} ({doc.get('filerName', '')[:40)})")
+                    print(f"  stored EDINET doc {doc_id} ({doc.get('filerName', '')[:40]})")
 
     print(f"\nEDINET backfill complete: {total} articles stored")
 
