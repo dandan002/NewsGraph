@@ -1,11 +1,12 @@
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
+import { ArticleFeed } from '@/components/news/ArticleFeed'
 
 export default function DashboardPage() {
   return (
     <DashboardLayout
-      newsFeed={<div className="flex-1 bg-[#080c14]" />}
+      newsFeed={<ArticleFeed initialTier={null} />}
       chat={<div className="flex-1 bg-[#080c14]" />}
-      markets={<div className="h-full bg-[#0a0f1a]" />}
+      markets={<div className="w-full bg-[#080c14]" />}
     />
   )
 }
