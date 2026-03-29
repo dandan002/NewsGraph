@@ -1,9 +1,10 @@
+import type { ReactNode } from 'react'
 import { TopNav } from './TopNav'
 
 interface DashboardLayoutProps {
-  newsFeed: React.ReactNode
-  chat: React.ReactNode
-  markets: React.ReactNode
+  newsFeed: ReactNode
+  chat: ReactNode
+  markets: ReactNode
 }
 
 export function DashboardLayout({ newsFeed, chat, markets }: DashboardLayoutProps) {
