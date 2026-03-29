@@ -31,6 +31,10 @@ export async function POST(request: Request) {
       ? lastUserMessage.content
       : (lastUserMessage.content as Array<{ type: string; text?: string }>)[0]?.text ?? ''
 
+  if (!userText.trim()) {
+    return NextResponse.json({ error: 'No text content in user message' }, { status: 400 })
+  }
+
   let embedding: number[]
   try {
     embedding = await embed(userText)
