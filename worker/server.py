@@ -4,7 +4,9 @@ from aiohttp import web
 
 
 async def handle_trigger(request: web.Request) -> web.Response:
-    secret = os.environ.get("INGEST_WORKER_SECRET", "")
+    secret = os.environ.get("INGEST_WORKER_SECRET")
+    if not secret:
+        return web.Response(status=500, text="INGEST_WORKER_SECRET not configured")
     if request.headers.get("x-ingest-secret") != secret:
         return web.Response(status=401, text="Unauthorized")
 
