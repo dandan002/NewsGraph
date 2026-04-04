@@ -7,7 +7,7 @@ export default function LoginPage() {
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
           <h1 className="text-blue-400 font-mono font-bold text-2xl tracking-widest">
-            NEWSGRAPH
+            ATLASROOM
           </h1>
           <p className="text-slate-600 font-mono text-xs mt-1">
             macro research platform

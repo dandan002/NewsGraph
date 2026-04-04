@@ -11,7 +11,7 @@ export async function TopNav() {
     <nav className="bg-[#0a0f1a] flex-shrink-0 flex items-center justify-between px-5 h-12 border-b border-[#131d2e]">
       {/* Brand */}
       <div className="flex items-center gap-3">
-        <span className="text-white font-bold tracking-[0.2em] text-sm">NEWSGRAPH</span>
+        <span className="text-white font-bold tracking-[0.2em] text-sm">ATLASROOM</span>
         <span className="text-[#1e3a5a] text-xs">|</span>
         <span className="text-[#3a5a7a] text-[10px] tracking-widest font-medium">
           MACRO INTELLIGENCE
