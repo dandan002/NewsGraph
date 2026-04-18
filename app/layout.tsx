@@ -1,10 +1,20 @@
 import type { Metadata } from 'next'
-import { GeistMono } from 'geist/font/mono'
+import { Inter, JetBrains_Mono } from 'next/font/google'
 import './globals.css'
 
+const inter = Inter({
+  subsets: ['latin'],
+  variable: '--font-inter',
+})
+
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ['latin'],
+  variable: '--font-jetbrains-mono',
+})
+
 export const metadata: Metadata = {
-  title: 'AtlasRoom',
-  description: 'Macro research platform',
+  title: 'AtlasRoom — Macro research, in plain English.',
+  description: 'Japanese news, regulatory filings, and crypto market data — summarized, embedded, and queryable in one workspace.',
 }
 
 export default function RootLayout({
@@ -13,8 +23,8 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" className={GeistMono.className}>
-      <body className="bg-[#080c14] text-slate-200 antialiased">{children}</body>
+    <html lang="en" className={`${inter.variable} ${jetbrainsMono.variable}`}>
+      <body>{children}</body>
     </html>
   )
 }

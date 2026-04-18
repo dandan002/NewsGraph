@@ -1,19 +1,104 @@
 @import "tailwindcss";
 
+/* ── Design tokens ── */
 :root {
-  --background: #080c14;
-  --foreground: #e2e8f0;
+  --bg: #0a0b0f;
+  --bg-1: #101218;
+  --bg-2: #161922;
+  --bg-3: #1d212c;
+  --line: rgba(255,255,255,0.06);
+  --line-2: rgba(255,255,255,0.10);
+  --line-3: rgba(255,255,255,0.18);
+
+  --text: #f5f7fa;
+  --text-1: #d8dde6;
+  --text-dim: #9aa3b2;
+  --text-mute: #6b7484;
+  --text-faint: #444c5c;
+
+  --accent: #4d8dff;
+  --accent-soft: rgba(77,141,255,0.10);
+  --accent-glow: rgba(77,141,255,0.30);
+  --blue: #6dd5ff;
+  --blue-soft: rgba(109,213,255,0.10);
+  --indigo: #8b7bff;
+  --amber: #ffb547;
+  --red: #ff5d6c;
+  --slate: #94a3b8;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-bg: var(--bg);
+  --color-bg-1: var(--bg-1);
+  --color-bg-2: var(--bg-2);
+  --color-bg-3: var(--bg-3);
+  --color-text: var(--text);
+  --color-text-1: var(--text-1);
+  --color-text-dim: var(--text-dim);
+  --color-text-mute: var(--text-mute);
+  --color-text-faint: var(--text-faint);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-ar-red: var(--red);
+  --color-ar-amber: var(--amber);
+  --font-sans: var(--font-inter);
+  --font-mono: var(--font-jetbrains-mono);
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-inter), system-ui, -apple-system, sans-serif;
+  font-size: 15px;
+  line-height: 1.55;
+  letter-spacing: -0.005em;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* ── Gradient text ── */
+.accent-text {
+  background: linear-gradient(135deg, var(--accent) 0%, #8ab4ff 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* ── Animations ── */
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.animate-pulse-dot {
+  animation: pulse 2s infinite;
+}
+
+/* ── Logo mark ── */
+.mark-logo {
+  background: linear-gradient(135deg, var(--accent) 0%, #2f6fe6 100%);
+  box-shadow: 0 0 0 1px rgba(77,141,255,0.3), 0 4px 14px -2px rgba(77,141,255,0.4);
+}
+
+/* ── Feed tier bars ── */
+.tier-bar-1::before { background: var(--accent) !important; }
+.tier-bar-2::before { background: var(--blue) !important; }
+.tier-bar-3::before { background: var(--text-faint) !important; }
+
+/* ── Auth field focus ring ── */
+.field-focus:focus-within {
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 4px var(--accent-soft) !important;
 }
