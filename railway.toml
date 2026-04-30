@@ -1,7 +1,0 @@
-[build]
-builder = "nixpacks"
-rootDirectory = "worker"
-
-[deploy]
-startCommand = "python3 worker.py"
-restartPolicyType = "always"
